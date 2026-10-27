@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:pizarra/src/models/truco_game.dart';
+import 'package:pizarra/src/models/truco_style.dart';
 import 'package:pizarra/src/pages/truco/setup_page.dart';
 import 'package:pizarra/src/pages/truco/style_page.dart';
+import 'package:pizarra/src/services/game_storage.dart';
 
 class ScorePage extends StatefulWidget {
   const ScorePage({
@@ -11,6 +14,7 @@ class ScorePage extends StatefulWidget {
     required this.teamBName,
     required this.playersPerTeam,
     this.teamCName,
+    this.resume = false,
   });
 
   final String teamAName;
@@ -18,53 +22,72 @@ class ScorePage extends StatefulWidget {
   final int playersPerTeam;
   final String? teamCName;
 
+  /// Si es `true`, retoma la partida guardada en lugar de empezar de cero.
+  final bool resume;
+
   @override
   State<ScorePage> createState() => _ScorePageState();
 }
 
 class _ScorePageState extends State<ScorePage> {
-  static const int target = 30;
-  static const int squaresPerHalf = 3;
-  static const int pointsPerSquare = 5;
+  final GameStorage _storage = GameStorage.instance;
 
-  int _scoreA = 0;
-  int _scoreB = 0;
-  int _scoreC = 0;
-
-  String? _winner;
+  late TrucoGame _game;
+  late StyleSettings _style;
+  int? _winnerIndex;
   bool _winnerShown = false;
-  StyleSettings _style = const StyleSettings(
-    stickColor: Color(0xFFD4A574),
-    stickStyle: StickStyle.match,
-  );
+
+  int get _teamCount => widget.playersPerTeam == 3 ? 3 : 2;
+
+  List<String> get _teamNames => [
+        widget.teamAName,
+        widget.teamBName,
+        if (_teamCount == 3) widget.teamCName ?? 'Verde',
+      ];
+
+  @override
+  void initState() {
+    super.initState();
+    _game = TrucoGame(teamNames: _teamNames);
+    _style = _storage.loadStyle() ?? const StyleSettings();
+    if (widget.resume) {
+      final saved = _storage.loadTruco();
+      if (saved != null && saved.teamCount == _teamCount) {
+        _game = saved;
+        _winnerIndex = saved.winnerIndex;
+        // Una partida ya terminada se muestra sin volver a abrir el diálogo.
+        _winnerShown = _winnerIndex != null;
+      }
+    }
+    _persist();
+  }
+
+  void _persist() => _storage.saveTruco(_game);
 
   void _addPoints(int team, int points) {
     setState(() {
-      if (team == 0) {
-        _scoreA = (_scoreA + points).clamp(0, target);
-        if (_scoreA >= target) _winner = widget.teamAName;
-      } else if (team == 1) {
-        _scoreB = (_scoreB + points).clamp(0, target);
-        if (_scoreB >= target) _winner = widget.teamBName;
-      } else {
-        _scoreC = (_scoreC + points).clamp(0, target);
-        if (_scoreC >= target) _winner = widget.teamCName!;
-      }
+      final reachedTarget = _game.addPoints(team, points);
+      if (reachedTarget) _winnerIndex ??= team;
     });
+    _persist();
   }
 
   void _subtractPoint(int team) {
     setState(() {
-      if (team == 0) {
-        _scoreA = (_scoreA - 1).clamp(0, target);
-      } else if (team == 1) {
-        _scoreB = (_scoreB - 1).clamp(0, target);
-      } else {
-        _scoreC = (_scoreC - 1).clamp(0, target);
-      }
-      _winner = null;
+      _game.subtractPoint(team);
+      _winnerIndex = null;
       _winnerShown = false;
     });
+    _persist();
+  }
+
+  void _newMatch() {
+    setState(() {
+      _game.reset();
+      _winnerIndex = null;
+      _winnerShown = false;
+    });
+    _persist();
   }
 
   void _reset() {
@@ -81,13 +104,7 @@ class _ScorePageState extends State<ScorePage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                _scoreA = 0;
-                _scoreB = 0;
-                _scoreC = 0;
-                _winner = null;
-                _winnerShown = false;
-              });
+              _newMatch();
             },
             child: const Text('Reiniciar',
                 style: TextStyle(color: Color(0xFFB71C1C))),
@@ -99,9 +116,11 @@ class _ScorePageState extends State<ScorePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_winner != null && !_winnerShown) {
+    final winnerIndex = _winnerIndex;
+    if (winnerIndex != null && !_winnerShown) {
       _winnerShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -115,7 +134,7 @@ class _ScorePageState extends State<ScorePage> {
                 const Text('🏆', style: TextStyle(fontSize: 48)),
                 const SizedBox(height: 8),
                 Text(
-                  _winner!,
+                  _game.teamNames[winnerIndex],
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
@@ -124,9 +143,7 @@ class _ScorePageState extends State<ScorePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.playersPerTeam == 3
-                      ? '$_scoreA - $_scoreB - $_scoreC'
-                      : '$_scoreA - $_scoreB',
+                  _game.scores.join(' - '),
                   style: const TextStyle(fontSize: 16, color: Colors.black54),
                 ),
               ],
@@ -141,12 +158,7 @@ class _ScorePageState extends State<ScorePage> {
               FilledButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  setState(() {
-                    _scoreA = 0;
-                    _scoreB = 0;
-                    _winner = null;
-                    _winnerShown = false;
-                  });
+                  _newMatch();
                 },
                 child: const Text('Nueva partida'),
               ),
@@ -177,11 +189,15 @@ class _ScorePageState extends State<ScorePage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = 10.0;
-        final teamCount = widget.playersPerTeam == 3 ? 3 : 2;
-        final sizeByWidth = (constraints.maxWidth - 48 - (teamCount - 1) * gap * 2) / teamCount;
-        final totalSquares = squaresPerHalf * 2 + 1; // 3 malas + divisoria + 3 buenas
+        final teamCount = _game.teamCount;
+        final sizeByWidth = (constraints.maxWidth -
+                48 -
+                (teamCount - 1) * gap * 2) /
+            teamCount;
+        final totalSquares = TrucoGame.squaresPerHalf * 2 + 1; // malas + divisoria + buenas
         final sizeByHeight =
-            (constraints.maxHeight - (totalSquares - 1) * gap - 20) / totalSquares;
+            (constraints.maxHeight - (totalSquares - 1) * gap - 20) /
+                totalSquares;
         final size =
             math.max(16.0, math.min(sizeByWidth, sizeByHeight)).toDouble();
 
@@ -198,7 +214,7 @@ class _ScorePageState extends State<ScorePage> {
                 width: gap * 2,
               ),
               Expanded(child: _buildTeamColumn(1, size, gap)),
-              if (widget.playersPerTeam == 3) ...[
+              if (teamCount == 3) ...[
                 VerticalDivider(
                   thickness: 1.5,
                   color: Colors.grey[400],
@@ -214,14 +230,14 @@ class _ScorePageState extends State<ScorePage> {
   }
 
   Widget _buildTeamColumn(int team, double size, double gap) {
-    final score = team == 0 ? _scoreA : team == 1 ? _scoreB : _scoreC;
+    final score = _game.scoreFor(team);
     final column = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.max,
       children: [
-        for (int sq = 0; sq < squaresPerHalf; sq++) ...[
+        for (int sq = 0; sq < TrucoGame.squaresPerHalf; sq++) ...[
           _MatchSquare(
-            points: _pointsInSquare(team, 0, sq),
+            points: _game.pointsInSquare(team, 0, sq),
             size: size,
             style: _style,
           ),
@@ -229,22 +245,18 @@ class _ScorePageState extends State<ScorePage> {
         ],
         Divider(height: 1, thickness: 1.5, color: Colors.grey[400]),
         SizedBox(height: gap),
-        for (int sq = 0; sq < squaresPerHalf; sq++) ...[
+        for (int sq = 0; sq < TrucoGame.squaresPerHalf; sq++) ...[
           _MatchSquare(
-            points: _pointsInSquare(team, 1, sq),
+            points: _game.pointsInSquare(team, 1, sq),
             size: size,
             style: _style,
           ),
-          if (sq < squaresPerHalf - 1) SizedBox(height: gap),
+          if (sq < TrucoGame.squaresPerHalf - 1) SizedBox(height: gap),
         ],
       ],
     );
 
-    final teamName = team == 0
-        ? widget.teamAName
-        : team == 1
-            ? widget.teamBName
-            : widget.teamCName!;
+    final teamName = _game.teamNames[team];
     return Semantics(
       key: ValueKey('team-column-$team'),
       container: true,
@@ -259,14 +271,6 @@ class _ScorePageState extends State<ScorePage> {
         child: column,
       ),
     );
-  }
-
-  int _pointsInSquare(int team, int half, int col) {
-    final score = team == 0 ? _scoreA : team == 1 ? _scoreB : _scoreC;
-    final base = half * squaresPerHalf * pointsPerSquare;
-    final squareStart = base + col * pointsPerSquare;
-    if (score <= squareStart) return 0;
-    return math.min(score - squareStart, pointsPerSquare);
   }
 
   Widget _buildHeader() {
@@ -302,10 +306,10 @@ class _ScorePageState extends State<ScorePage> {
               ),
             ),
           ),
-          if (widget.playersPerTeam == 3)
+          if (_teamCount == 3)
             Expanded(
               child: Text(
-                widget.teamCName!.toUpperCase(),
+                _game.teamNames[2].toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -358,6 +362,7 @@ class _ScorePageState extends State<ScorePage> {
     );
     if (result != null) {
       setState(() => _style = result);
+      _storage.saveStyle(result);
     }
   }
 
@@ -372,7 +377,7 @@ class _ScorePageState extends State<ScorePage> {
               color: const Color(0xFFE53935),
               onAdd: (p) => _addPoints(0, p),
               onSubtract: () => _subtractPoint(0),
-              hideThree: widget.playersPerTeam == 3,
+              hideThree: _teamCount == 3,
             ),
           ),
           Expanded(
@@ -380,10 +385,10 @@ class _ScorePageState extends State<ScorePage> {
               color: const Color(0xFF42A5F5),
               onAdd: (p) => _addPoints(1, p),
               onSubtract: () => _subtractPoint(1),
-              hideThree: widget.playersPerTeam == 3,
+              hideThree: _teamCount == 3,
             ),
           ),
-          if (widget.playersPerTeam == 3)
+          if (_teamCount == 3)
             Expanded(
               child: _ControlsRow(
                 color: const Color(0xFF43A047),

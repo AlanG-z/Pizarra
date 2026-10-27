@@ -1,30 +1,5 @@
 import 'package:flutter/material.dart';
-
-class StyleSettings {
-  const StyleSettings({
-    this.backgroundColor,
-    this.stickColor = const Color(0xFFD4A574),
-    this.stickStyle = StickStyle.match,
-  });
-
-  final Color? backgroundColor;
-  final Color stickColor;
-  final StickStyle stickStyle;
-
-  StyleSettings copyWith({
-    Color? backgroundColor,
-    Color? stickColor,
-    StickStyle? stickStyle,
-  }) {
-    return StyleSettings(
-      backgroundColor: backgroundColor ?? this.backgroundColor,
-      stickColor: stickColor ?? this.stickColor,
-      stickStyle: stickStyle ?? this.stickStyle,
-    );
-  }
-}
-
-enum StickStyle { match, stick, dot }
+import 'package:pizarra/src/models/truco_style.dart';
 
 class StylePage extends StatefulWidget {
   const StylePage({super.key, required this.settings});

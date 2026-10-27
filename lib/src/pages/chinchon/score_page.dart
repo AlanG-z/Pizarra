@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pizarra/src/models/chinchon_game.dart';
+import 'package:pizarra/src/services/game_storage.dart';
 
 class ChinchonScorePage extends StatefulWidget {
   const ChinchonScorePage({
     super.key,
     required this.playerNames,
     required this.target,
+    this.resume = false,
   });
 
   final List<String> playerNames;
   final int target;
+
+  /// Si es `true`, retoma la partida guardada en lugar de empezar de cero.
+  final bool resume;
 
   @override
   State<ChinchonScorePage> createState() => _ChinchonScorePageState();
@@ -24,25 +30,35 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
     Color(0xFFFF8A50),
     Color(0xFFEC407A),
   ];
-  static const _subtractStep = 10;
 
-  late List<int> _totals;
-  late List<List<String>> _entries;
-  late List<bool> _eliminated;
+  final GameStorage _storage = GameStorage.instance;
+
+  late ChinchonGame _game;
   late final List<ScrollController> _scrollControllers;
-  String? _winner;
+  int? _winnerIndex;
   bool _winnerShown = false;
 
   @override
   void initState() {
     super.initState();
-    _totals = List<int>.filled(widget.playerNames.length, 0);
-    _entries = List.generate(widget.playerNames.length, (_) => <String>[]);
-    _eliminated = List<bool>.filled(widget.playerNames.length, false);
+    _game = ChinchonGame(
+      playerNames: widget.playerNames,
+      target: widget.target,
+    );
+    if (widget.resume) {
+      final saved = _storage.loadChinchon();
+      if (saved != null && saved.playerCount == widget.playerNames.length) {
+        _game = saved;
+      }
+    }
+    _winnerIndex = _game.lastStandingIndex;
+    // Una partida ya terminada se muestra sin volver a abrir el diálogo.
+    _winnerShown = _winnerIndex != null;
     _scrollControllers = List.generate(
       widget.playerNames.length,
       (_) => ScrollController(),
     );
+    _persist();
   }
 
   @override
@@ -52,6 +68,8 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
     }
     super.dispose();
   }
+
+  void _persist() => _storage.saveChinchon(_game);
 
   Color _colorFor(int i) => _colors[i % _colors.length];
 
@@ -77,27 +95,21 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
       context: context,
       builder: (_) => _PointsDialog(playerName: widget.playerNames[player]),
     );
-    if (value != null && mounted) {
-      setState(() {
-        _totals[player] = (_totals[player] + value).clamp(0, 100000);
-        _entries[player].add('+$value');
-      });
-      _scrollToBottom(player);
-      _checkElimination(player);
-    }
+    if (value == null || !mounted) return;
+    final eliminatedNow = _game.addPoints(player, value);
+    setState(() {});
+    _persist();
+    _scrollToBottom(player);
+    if (eliminatedNow) _showElimination(player);
   }
 
   void _subtractTen(int player) {
-    setState(() {
-      _totals[player] = _totals[player] - _subtractStep;
-      _entries[player].add('-$_subtractStep');
-    });
+    setState(() => _game.subtractTen(player));
+    _persist();
     _scrollToBottom(player);
   }
 
-  void _checkElimination(int player) {
-    if (_totals[player] < widget.target || _eliminated[player]) return;
-    _eliminated[player] = true;
+  void _showElimination(int player) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -120,7 +132,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Llegó a ${widget.target} puntos',
+              'Llegó a ${_game.target} puntos',
               style: const TextStyle(fontSize: 16, color: Colors.black54),
             ),
           ],
@@ -140,13 +152,19 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
   }
 
   void _checkWinner() {
-    final remaining = <int>[
-      for (int i = 0; i < _eliminated.length; i++)
-        if (!_eliminated[i]) i,
-    ];
-    if (remaining.length == 1) {
-      setState(() => _winner ??= widget.playerNames[remaining.first]);
+    final winner = _game.lastStandingIndex;
+    if (winner != null && _winnerIndex == null) {
+      setState(() => _winnerIndex = winner);
     }
+  }
+
+  void _newMatch() {
+    setState(() {
+      _game.reset();
+      _winnerIndex = null;
+      _winnerShown = false;
+    });
+    _persist();
   }
 
   void _reset() {
@@ -163,15 +181,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                for (int i = 0; i < _totals.length; i++) {
-                  _totals[i] = 0;
-                  _entries[i] = <String>[];
-                  _eliminated[i] = false;
-                }
-                _winner = null;
-                _winnerShown = false;
-              });
+              _newMatch();
             },
             child: const Text('Reiniciar',
                 style: TextStyle(color: Color(0xFFB71C1C))),
@@ -185,23 +195,14 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
-  void _newMatch() {
-    setState(() {
-      for (int i = 0; i < _totals.length; i++) {
-        _totals[i] = 0;
-        _entries[i] = <String>[];
-        _eliminated[i] = false;
-      }
-      _winner = null;
-      _winnerShown = false;
-    });
-  }
+  String _formatMove(int move) => move >= 0 ? '+$move' : '$move';
 
   @override
   Widget build(BuildContext context) {
-    if (_winner != null && !_winnerShown) {
+    if (_winnerIndex != null && !_winnerShown) {
       _winnerShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -216,7 +217,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
                 const Text('🏆', style: TextStyle(fontSize: 48)),
                 const SizedBox(height: 8),
                 Text(
-                  _winner!,
+                  _game.playerNames[_winnerIndex!],
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
@@ -276,7 +277,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
           ),
           Expanded(
             child: Text(
-              'CHINCHÓN · LÍMITE ${widget.target}',
+              'CHINCHÓN · LÍMITE ${_game.target}',
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -300,7 +301,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
 
   Widget _buildColumns() {
     final columns = <Widget>[];
-    for (int i = 0; i < widget.playerNames.length; i++) {
+    for (int i = 0; i < _game.playerCount; i++) {
       if (i > 0) {
         columns.add(
           const Padding(
@@ -326,19 +327,20 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
 
   Widget _buildPlayerColumn(int i) {
     final color = _colorFor(i);
-    final eliminated = _eliminated[i];
+    final eliminated = _game.eliminated[i];
     final displayColor = eliminated ? Colors.grey : color;
-    final total = _totals[i];
+    final total = _game.totals[i];
+    final moves = _game.moves[i];
     return Semantics(
       key: ValueKey('chinchon-player-$i'),
       container: true,
-      label: widget.playerNames[i],
+      label: _game.playerNames[i],
       value: '$total ${total == 1 ? 'punto' : 'puntos'}',
       hint: eliminated ? 'Eliminado' : 'Tocá para anotar puntos',
       child: Column(
         children: [
           Text(
-            widget.playerNames[i].toUpperCase(),
+            _game.playerNames[i].toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -407,15 +409,15 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
             child: ListView(
               controller: _scrollControllers[i],
               children: [
-                for (int j = 0; j < _entries[i].length; j++)
+                for (int j = 0; j < moves.length; j++)
                   Text(
-                    _entries[i][j],
+                    _formatMove(moves[j]),
                     key: ValueKey('chinchon-entry-$i-$j'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _entries[i][j].startsWith('-')
+                      color: moves[j] < 0
                           ? const Color(0xFFB71C1C)
                           : const Color(0xFF1B5E20),
                     ),

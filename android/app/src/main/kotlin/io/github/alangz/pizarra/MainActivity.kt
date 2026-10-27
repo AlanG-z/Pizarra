@@ -1,4 +1,4 @@
-package com.example.pizarra
+package io.github.alangz.pizarra
 
 import io.flutter.embedding.android.FlutterActivity
 

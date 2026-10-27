@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pizarra/src/routes/reoutes.dart';
+import 'package:pizarra/src/routes/routes.dart';
 
 class _FadePageTransitionsBuilder extends PageTransitionsBuilder {
   const _FadePageTransitionsBuilder();
@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
           },
         ),
       ),
-      routes: getAplicationRoutes(),
+      routes: getApplicationRoutes(),
     );
   }
 }
