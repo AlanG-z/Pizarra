@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pizarra/src/models/truco_style.dart';
+import 'package:pizarra/src/theme/app_palette.dart';
+import 'package:pizarra/src/theme/theme_controller.dart';
+import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/match_painter.dart';
 
 class StylePage extends StatefulWidget {
   const StylePage({super.key, required this.settings});
@@ -11,6 +15,15 @@ class StylePage extends StatefulWidget {
 }
 
 class _StylePageState extends State<StylePage> {
+  static const List<(String, Color)> _stickColors = [
+    ('Madera', Color(0xFFD4A574)),
+    ('Blanco', Color(0xFFF5F5F0)),
+    ('Rojo', Color(0xFFE53935)),
+    ('Azul', Color(0xFF42A5F5)),
+    ('Verde', Color(0xFF43A047)),
+    ('Dorado', Color(0xFFFFD54F)),
+  ];
+
   late StyleSettings _settings;
 
   @override
@@ -21,192 +34,193 @@ class _StylePageState extends State<StylePage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     return Scaffold(
+      backgroundColor: palette.backgroundStart,
       appBar: AppBar(
         title: const Text('Estilo'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: palette.accent,
+        elevation: 0,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, _settings),
-            child: const Text('Listo',
-                style: TextStyle(color: Color(0xFF0B3D2E))),
+            child: Text(
+              'Listo',
+              style: TextStyle(
+                color: palette.accent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _sectionTitle('Fondo'),
-          Wrap(
-            spacing: 8,
-            children: [
-              _colorOption(Colors.white, 'Blanco'),
-              _colorOption(const Color(0xFFF5F0E1), 'Crema'),
-              _colorOption(const Color(0xFF0B3D2E), 'Verde'),
-              _colorOption(Colors.grey[900]!, 'Oscuro'),
-              _colorOption(const Color(0xFFE9E9E7), 'Gris'),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _sectionTitle('Color de palitos'),
-          Wrap(
-            spacing: 8,
-            children: [
-              _colorOption(const Color(0xFFD4A574), 'Madera'),
-              _colorOption(const Color(0xFFE53935), 'Rojo'),
-              _colorOption(const Color(0xFF42A5F5), 'Azul'),
-              _colorOption(const Color(0xFF43A047), 'Verde'),
-              _colorOption(const Color(0xFFFFD54F), 'Dorado'),
-              _colorOption(const Color(0xFF8D6E63), 'Marrón'),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _sectionTitle('Diseño'),
-          Wrap(
-            spacing: 8,
-            children: [
-              _styleOption(StickStyle.match, 'Fósforos', Icons.local_fire_department),
-              _styleOption(StickStyle.stick, 'Palitos', Icons.remove),
-              _styleOption(StickStyle.dot, 'Puntos', Icons.fiber_manual_record),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _settings.backgroundColor ?? Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
+      body: AppBackground(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _sectionTitle(palette, 'Tema de la app'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                const Text('Vista previa',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _previewSquare(2),
-                    _previewSquare(5),
-                  ],
-                ),
+                for (final type in AppThemeType.values)
+                  _choiceChip(
+                    palette,
+                    label: type.label,
+                    selected: ThemeController.instance.theme.value == type,
+                    onSelected: () => ThemeController.instance.select(type),
+                  ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF0B3D2E),
+            const SizedBox(height: 8),
+            Text(
+              'El tema se aplica a toda la app y queda guardado.',
+              style: TextStyle(fontSize: 12, color: palette.textSecondary),
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle(palette, 'Diseño'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final style in StickStyle.values)
+                  _choiceChip(
+                    palette,
+                    label: style.label,
+                    selected: _settings.stickStyle == style,
+                    onSelected: () {
+                      setState(() {
+                        _settings = _settings.copyWith(stickStyle: style);
+                      });
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _sectionTitle(palette, 'Color de palitos'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _choiceChip(
+                  palette,
+                  label: 'Automático',
+                  selected: _settings.stickColor == null,
+                  onSelected: () {
+                    setState(() {
+                      _settings = _settings.copyWith(clearStickColor: true);
+                    });
+                  },
+                ),
+                for (final entry in _stickColors)
+                  _choiceChip(
+                    palette,
+                    label: entry.$1,
+                    selected: _settings.stickColor == entry.$2,
+                    swatch: entry.$2,
+                    onSelected: () {
+                      setState(() {
+                        _settings = _settings.copyWith(stickColor: entry.$2);
+                      });
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            _buildPreview(palette),
+          ],
         ),
       ),
     );
   }
 
-  Widget _colorOption(Color color, String label) {
-    final selected = _settings.stickColor == color ||
-        _settings.backgroundColor == color;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) {
-        setState(() {
-          // Distingo fondo vs color de palito por el section title anterior
-          // Uso un truco: si el color ya es el stickColor, cambio fondo
-          if (_settings.backgroundColor == color) {
-            _settings = _settings.copyWith(backgroundColor: null);
-          } else if (_settings.stickColor == color) {
-            _settings = _settings.copyWith(stickColor: color);
-          } else {
-            //默认: cambio stickColor
-            _settings = _settings.copyWith(stickColor: color);
-          }
-        });
-      },
-      selectedColor: color.withValues(alpha: 0.2),
+  Widget _sectionTitle(AppPalette palette, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: palette.accent,
+        ),
+      ),
     );
   }
 
-  Widget _styleOption(StickStyle style, String label, IconData icon) {
-    final selected = _settings.stickStyle == style;
+  Widget _choiceChip(
+    AppPalette palette, {
+    required String label,
+    required bool selected,
+    required VoidCallback onSelected,
+    Color? swatch,
+  }) {
     return ChoiceChip(
-      avatar: Icon(icon, size: 18),
+      avatar: swatch == null
+          ? null
+          : CircleAvatar(backgroundColor: swatch, radius: 8),
       label: Text(label),
       selected: selected,
-      onSelected: (_) => setState(() => _settings = _settings.copyWith(stickStyle: style)),
+      onSelected: (_) => onSelected(),
+      showCheckmark: false,
+      backgroundColor: palette.surface,
+      selectedColor: palette.accent.withValues(alpha: 0.28),
+      labelStyle: TextStyle(
+        color: selected ? palette.accent : palette.textSecondary,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      side: BorderSide(
+        color: selected ? palette.accent : palette.surfaceBorder,
+      ),
     );
   }
 
-  Widget _previewSquare(int points) {
+  Widget _buildPreview(AppPalette palette) {
     return Container(
-      width: 60,
-      height: 60,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[600]!, width: 1.5),
-        borderRadius: BorderRadius.circular(4),
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.surfaceBorder),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Vista previa',
+            style: TextStyle(
+              color: palette.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _previewSquare(palette, 2),
+              _previewSquare(palette, 5),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _previewSquare(AppPalette palette, int points) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.divider, width: 1.2),
       ),
       child: CustomPaint(
-        painter: _PreviewPainter(
+        painter: MatchStrokesPainter(
           points,
-          _settings.stickColor,
+          resolveStickColor(_settings, palette),
           _settings.stickStyle,
         ),
       ),
     );
   }
-}
-
-class _PreviewPainter extends CustomPainter {
-  _PreviewPainter(this.points, this.color, this.style);
-
-  final int points;
-  final Color color;
-  final StickStyle style;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final pad = s * 0.08;
-
-    void drawElement(Offset from, Offset to) {
-      if (style == StickStyle.dot) {
-        canvas.drawCircle(from, s * 0.05, Paint()..color = color);
-        canvas.drawCircle(to, s * 0.05, Paint()..color = color);
-        return;
-      }
-      final paint = Paint()
-        ..color = style == StickStyle.match ? const Color(0xFFD4A574) : color
-        ..strokeWidth = style == StickStyle.match ? s * 0.07 : s * 0.06
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(from, to, paint);
-      if (style == StickStyle.match) {
-        canvas.drawCircle(from, s * 0.075, Paint()..color = color);
-      }
-    }
-
-    final tl = Offset(pad, pad);
-    final tr = Offset(s - pad, pad);
-    final bl = Offset(pad, s - pad);
-    final br = Offset(s - pad, s - pad);
-
-    if (points >= 1) drawElement(tl, tr);
-    if (points >= 2) drawElement(tl, bl);
-    if (points >= 3) drawElement(tr, br);
-    if (points >= 4) drawElement(bl, br);
-    if (points >= 5) drawElement(tl, br);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PreviewPainter oldDelegate) =>
-      oldDelegate.points != points ||
-      oldDelegate.color != color ||
-      oldDelegate.style != style;
 }

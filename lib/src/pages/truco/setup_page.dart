@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pizarra/src/pages/truco/score_page.dart';
+import 'package:pizarra/src/theme/app_palette.dart';
+import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/fade_slide_in.dart';
 
 class SetupPage extends StatefulWidget {
   const SetupPage({super.key});
@@ -47,24 +50,40 @@ class _SetupPageState extends State<SetupPage> {
     );
   }
 
+  InputDecoration _field(
+    AppPalette palette, {
+    required String label,
+    required IconData icon,
+    required Color color,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: palette.textSecondary),
+      counterStyle: TextStyle(color: palette.textSecondary),
+      prefixIcon: Icon(icon, color: color, size: 18),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: palette.surfaceBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0B3D2E),
+      backgroundColor: palette.backgroundStart,
       appBar: AppBar(
         title: const Text('Truco'),
-        backgroundColor: const Color(0xFF0B3D2E),
-        foregroundColor: const Color(0xFFFFD54F),
+        backgroundColor: Colors.transparent,
+        foregroundColor: palette.accent,
         elevation: 0,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B3D2E), Color(0xFF06231B)],
-          ),
-        ),
+      body: AppBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -78,51 +97,49 @@ class _SetupPageState extends State<SetupPage> {
                     const SizedBox(height: 12),
                     Text(
                       'TRUCO',
-                      style: TextStyle(
-                        fontSize: 44,
-                        fontWeight: FontWeight.w900,
+                      style: palette.display(
+                        44,
+                        color: palette.accent,
                         letterSpacing: 8,
-                        color: const Color(0xFFFFD54F),
-                        shadows: [
-                          Shadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3)),
-                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       'Partida a 30 puntos',
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 15,
+                        color: palette.textSecondary,
                         letterSpacing: 2,
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    Card(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.15),
-                        ),
-                      ),
-                      child: Padding(
+                    const SizedBox(height: 26),
+                    FadeSlideIn(
+                      child: Container(
                         padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: palette.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: palette.surfaceBorder),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Jugadores por equipo',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: palette.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 12),
                             SegmentedButton<int>(
+                              style: SegmentedButton.styleFrom(
+                                foregroundColor:
+                                    palette.textPrimary.withValues(alpha: 0.9),
+                                selectedForegroundColor: palette.accentOn,
+                                selectedBackgroundColor: palette.accent,
+                                side: BorderSide(color: palette.surfaceBorder),
+                              ),
                               segments: const [
                                 ButtonSegment(value: 2, label: Text('2')),
                                 ButtonSegment(value: 3, label: Text('3')),
@@ -135,70 +152,37 @@ class _SetupPageState extends State<SetupPage> {
                             TextField(
                               controller: _teamAController,
                               maxLength: 12,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Equipo rojo',
-                                labelStyle: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.7)),
-                                prefixIcon: const Icon(Icons.circle,
-                                    color: Color(0xFFE53935), size: 18),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                      color: Colors.white.withValues(alpha: 0.3)),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      const BorderSide(color: Color(0xFFE53935)),
-                                ),
+                              style: TextStyle(color: palette.textPrimary),
+                              decoration: _field(
+                                palette,
+                                label: 'Equipo rojo',
+                                icon: Icons.circle,
+                                color: palette.red,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 4),
                             TextField(
                               controller: _teamBController,
                               maxLength: 12,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Equipo azul',
-                                labelStyle: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.7)),
-                                prefixIcon: const Icon(Icons.circle,
-                                    color: Color(0xFF42A5F5), size: 18),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                      color: Colors.white.withValues(alpha: 0.3)),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      const BorderSide(color: Color(0xFF42A5F5)),
-                                ),
+                              style: TextStyle(color: palette.textPrimary),
+                              decoration: _field(
+                                palette,
+                                label: 'Equipo azul',
+                                icon: Icons.circle,
+                                color: palette.blue,
                               ),
                             ),
                             if (_playersPerTeam == 3) ...[
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 4),
                               TextField(
                                 controller: _teamCController,
                                 maxLength: 12,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  labelText: 'Equipo verde',
-                                  labelStyle: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.7)),
-                                  prefixIcon: const Icon(Icons.circle,
-                                      color: Color(0xFF43A047), size: 18),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                        color: Colors.white.withValues(alpha: 0.3)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide:
-                                        const BorderSide(color: Color(0xFF43A047)),
-                                  ),
+                                style: TextStyle(color: palette.textPrimary),
+                                decoration: _field(
+                                  palette,
+                                  label: 'Equipo verde',
+                                  icon: Icons.circle,
+                                  color: palette.green,
                                 ),
                               ),
                             ],
@@ -206,15 +190,15 @@ class _SetupPageState extends State<SetupPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 22),
                     SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: FilledButton(
                         onPressed: _start,
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFD54F),
-                          foregroundColor: const Color(0xFF1B5E20),
+                          backgroundColor: palette.accent,
+                          foregroundColor: palette.accentOn,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -229,37 +213,14 @@ class _SetupPageState extends State<SetupPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     TextButton.icon(
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          backgroundColor: const Color(0xFF0B3D2E),
-                          title: const Text('¿Cómo se anota?',
-                              style: TextStyle(color: Colors.white)),
-                          content: Text(
-                            '• Mano ganada: 1 punto\n'
-                            '• Envido: 1, 2 o 3 puntos\n'
-                            '• Truco: 1, 2 o 3 puntos\n'
-                            '• Sumá y restá con los botones.\n'
-                            '• El primero en llegar a 30 gana.',
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85)),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Entendido',
-                                  style:
-                                      TextStyle(color: Color(0xFFFFD54F))),
-                            ),
-                          ],
-                        ),
+                      onPressed: () => _showHelp(palette),
+                      icon: Icon(Icons.help_outline, color: palette.accent),
+                      label: Text(
+                        'Cómo se anota',
+                        style: TextStyle(color: palette.accent),
                       ),
-                      icon: const Icon(Icons.help_outline,
-                          color: Color(0xFFFFD54F)),
-                      label: const Text('Cómo se anota',
-                          style: TextStyle(color: Color(0xFFFFD54F))),
                     ),
                   ],
                 ),
@@ -267,6 +228,29 @@ class _SetupPageState extends State<SetupPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showHelp(AppPalette palette) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('¿Cómo se anota?'),
+        content: Text(
+          '• Mano ganada: 1 punto\n'
+          '• Envido: 1, 2 o 3 puntos\n'
+          '• Truco: 1, 2 o 3 puntos\n'
+          '• Sumá y restá con los botones.\n'
+          '• El primero en llegar a 30 gana.',
+          style: TextStyle(color: palette.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
+          ),
+        ],
       ),
     );
   }
@@ -318,6 +302,13 @@ class PlayingCardsIcon extends StatelessWidget {
           '♠',
           style: TextStyle(
             fontSize: size * 0.5,
+            // El símbolo de pica no está en todas las fuentes del sistema.
+            fontFamilyFallback: const [
+              'Roboto',
+              'Noto Sans Symbols 2',
+              'DejaVu Sans',
+              'Segoe UI Symbol',
+            ],
             color: color == Colors.white ? Colors.black87 : Colors.black54,
           ),
         ),

@@ -1,11 +1,15 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pizarra/src/models/truco_game.dart';
 import 'package:pizarra/src/models/truco_style.dart';
 import 'package:pizarra/src/pages/truco/setup_page.dart';
 import 'package:pizarra/src/pages/truco/style_page.dart';
 import 'package:pizarra/src/services/game_storage.dart';
+import 'package:pizarra/src/theme/app_palette.dart';
+import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/match_painter.dart';
 
 class ScorePage extends StatefulWidget {
   const ScorePage({
@@ -65,6 +69,7 @@ class _ScorePageState extends State<ScorePage> {
   void _persist() => _storage.saveTruco(_game);
 
   void _addPoints(int team, int points) {
+    HapticFeedback.lightImpact();
     setState(() {
       final reachedTarget = _game.addPoints(team, points);
       if (reachedTarget) _winnerIndex ??= team;
@@ -91,6 +96,7 @@ class _ScorePageState extends State<ScorePage> {
   }
 
   void _reset() {
+    final palette = AppPalette.of(context);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -106,8 +112,7 @@ class _ScorePageState extends State<ScorePage> {
               Navigator.pop(context);
               _newMatch();
             },
-            child: const Text('Reiniciar',
-                style: TextStyle(color: Color(0xFFB71C1C))),
+            child: Text('Reiniciar', style: TextStyle(color: palette.red)),
           ),
         ],
       ),
@@ -116,111 +121,129 @@ class _ScorePageState extends State<ScorePage> {
 
   @override
   Widget build(BuildContext context) {
-    final winnerIndex = _winnerIndex;
-    if (winnerIndex != null && !_winnerShown) {
-      _winnerShown = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('¡Ganador!', textAlign: TextAlign.center),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🏆', style: TextStyle(fontSize: 48)),
-                const SizedBox(height: 8),
-                Text(
-                  _game.teamNames[winnerIndex],
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _game.scores.join(' - '),
-                  style: const TextStyle(fontSize: 16, color: Colors.black54),
-                ),
-              ],
-            ),
-            actionsAlignment: MainAxisAlignment.spaceEvenly,
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Revancha',
-                    style: TextStyle(color: Colors.black54)),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _newMatch();
-                },
-                child: const Text('Nueva partida'),
-              ),
-            ],
-          ),
-        );
-      });
-    }
+    final palette = AppPalette.of(context);
+    _maybeShowWinner();
 
     return Scaffold(
-      backgroundColor: _style.backgroundColor ?? Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: _buildSquares(),
-            ),
-            _buildControls(),
-          ],
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(palette),
+              Expanded(child: _buildSquares(palette)),
+              _buildControls(palette),
+              _buildPillBar(palette),
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
-  Widget _buildSquares() {
+  void _maybeShowWinner() {
+    final winnerIndex = _winnerIndex;
+    if (winnerIndex == null || _winnerShown) return;
+    _winnerShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('¡Ganador!', textAlign: TextAlign.center),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🏆', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 8),
+              Text(
+                _game.teamNames[winnerIndex],
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _game.scores.join(' - '),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Revancha'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _newMatch();
+              },
+              child: const Text('Nueva partida'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildHeader(AppPalette palette) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          for (int team = 0; team < _teamCount; team++)
+            Expanded(
+              child: Text(
+                _game.teamNames[team].toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: palette.display(
+                  24,
+                  color: palette.teamColor(team),
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSquares(AppPalette palette) {
+    final stickColor = resolveStickColor(_style, palette);
     return LayoutBuilder(
       builder: (context, constraints) {
-        const gap = 10.0;
+        const gap = 8.0;
         final teamCount = _game.teamCount;
-        final sizeByWidth = (constraints.maxWidth -
-                48 -
-                (teamCount - 1) * gap * 2) /
+        final widthPerTeam = (constraints.maxWidth - 24 - (teamCount - 1) * gap) /
             teamCount;
-        final totalSquares = TrucoGame.squaresPerHalf * 2 + 1; // malas + divisoria + buenas
+        final sizeByWidth = widthPerTeam - 24;
+        final totalSquares = TrucoGame.squaresPerHalf * 2 + 1;
         final sizeByHeight =
-            (constraints.maxHeight - (totalSquares - 1) * gap - 20) /
+            (constraints.maxHeight - 34 - (totalSquares - 1) * gap) /
                 totalSquares;
         final size =
-            math.max(16.0, math.min(sizeByWidth, sizeByHeight)).toDouble();
+            math.max(14.0, math.min(sizeByWidth, sizeByHeight)).toDouble();
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: _buildTeamColumn(0, size, gap)),
-              VerticalDivider(
-                thickness: 1.5,
-                color: Colors.grey[400],
-                width: gap * 2,
-              ),
-              Expanded(child: _buildTeamColumn(1, size, gap)),
-              if (teamCount == 3) ...[
-                VerticalDivider(
-                  thickness: 1.5,
-                  color: Colors.grey[400],
-                  width: gap * 2,
+              for (int team = 0; team < teamCount; team++) ...[
+                if (team > 0) const SizedBox(width: gap),
+                Expanded(
+                  child: _buildTeamCard(team, size, gap, palette, stickColor),
                 ),
-                Expanded(child: _buildTeamColumn(2, size, gap)),
               ],
             ],
           ),
@@ -229,7 +252,13 @@ class _ScorePageState extends State<ScorePage> {
     );
   }
 
-  Widget _buildTeamColumn(int team, double size, double gap) {
+  Widget _buildTeamCard(
+    int team,
+    double size,
+    double gap,
+    AppPalette palette,
+    Color stickColor,
+  ) {
     final score = _game.scoreFor(team);
     final column = Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -239,117 +268,114 @@ class _ScorePageState extends State<ScorePage> {
           _MatchSquare(
             points: _game.pointsInSquare(team, 0, sq),
             size: size,
-            style: _style,
+            style: _style.stickStyle,
+            color: stickColor,
           ),
           SizedBox(height: gap),
         ],
-        Divider(height: 1, thickness: 1.5, color: Colors.grey[400]),
+        SizedBox(
+          width: double.infinity,
+          height: 7,
+          child: CustomPaint(painter: DashedLinePainter(palette.divider)),
+        ),
         SizedBox(height: gap),
         for (int sq = 0; sq < TrucoGame.squaresPerHalf; sq++) ...[
           _MatchSquare(
             points: _game.pointsInSquare(team, 1, sq),
             size: size,
-            style: _style,
+            style: _style.stickStyle,
+            color: stickColor,
           ),
           if (sq < TrucoGame.squaresPerHalf - 1) SizedBox(height: gap),
         ],
       ],
     );
 
-    final teamName = _game.teamNames[team];
     return Semantics(
       key: ValueKey('team-column-$team'),
       container: true,
       button: true,
-      label: teamName,
+      label: _game.teamNames[team],
       value: '$score ${score == 1 ? 'punto' : 'puntos'}',
       hint: 'Tocá para sumar 1 punto',
       onTap: () => _addPoints(team, 1),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _addPoints(team, 1),
-        child: column,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: palette.surfaceBorder),
+          ),
+          child: column,
+        ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildControls(AppPalette palette) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              widget.teamAName.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-                color: Color(0xFFE53935),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              widget.teamBName.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-                color: Color(0xFF42A5F5),
-              ),
-            ),
-          ),
-          if (_teamCount == 3)
+          for (int team = 0; team < _teamCount; team++) ...[
+            if (team > 0) const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                _game.teamNames[2].toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                  color: Color(0xFF43A047),
+              child: _ControlsRow(
+                color: palette.teamColor(team),
+                onAdd: (points) => _addPoints(team, points),
+                onSubtract: () => _subtractPoint(team),
+                hideThree: _teamCount == 3,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillBar(AppPalette palette) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: palette.surfaceBorder),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _PillAction(
+                icon: Icons.refresh,
+                label: 'Reiniciar',
+                color: palette.textSecondary,
+                onTap: _reset,
+              ),
+            ),
+            Expanded(
+              child: _PillAction(
+                icon: Icons.settings_outlined,
+                label: 'Configurar',
+                color: palette.textSecondary,
+                onTap: () => Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const SetupPage()),
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    return BottomAppBar(
-      color: _style.backgroundColor ?? Colors.white,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          IconButton(
-            onPressed: _reset,
-            tooltip: 'Reiniciar',
-            icon: const Icon(Icons.refresh, color: Colors.black87),
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const SetupPage()),
+            Expanded(
+              child: _PillAction(
+                icon: Icons.palette_outlined,
+                label: 'Estilo',
+                color: palette.accent,
+                onTap: _openStyle,
+              ),
             ),
-            tooltip: 'Configurar',
-            icon: const Icon(Icons.settings, color: Colors.black87),
-          ),
-          IconButton(
-            onPressed: _openStyle,
-            tooltip: 'Estilo',
-            icon: const Icon(Icons.palette, color: Colors.black87),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -365,39 +391,55 @@ class _ScorePageState extends State<ScorePage> {
       _storage.saveStyle(result);
     }
   }
+}
 
-  Widget _buildControls() {
-    return Container(
-      color: Colors.grey[100],
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ControlsRow(
-              color: const Color(0xFFE53935),
-              onAdd: (p) => _addPoints(0, p),
-              onSubtract: () => _subtractPoint(0),
-              hideThree: _teamCount == 3,
+class _PillAction extends StatelessWidget {
+  const _PillAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: _ControlsRow(
-              color: const Color(0xFF42A5F5),
-              onAdd: (p) => _addPoints(1, p),
-              onSubtract: () => _subtractPoint(1),
-              hideThree: _teamCount == 3,
-            ),
-          ),
-          if (_teamCount == 3)
-            Expanded(
-              child: _ControlsRow(
-                color: const Color(0xFF43A047),
-                onAdd: (p) => _addPoints(2, p),
-                onSubtract: () => _subtractPoint(2),
-                hideThree: true,
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -410,11 +452,13 @@ class _MatchSquare extends StatefulWidget {
     required this.points,
     required this.size,
     required this.style,
+    required this.color,
   });
 
   final int points;
   final double size;
-  final StyleSettings style;
+  final StickStyle style;
+  final Color color;
 
   @override
   State<_MatchSquare> createState() => _MatchSquareState();
@@ -466,10 +510,10 @@ class _MatchSquareState extends State<_MatchSquare>
           child: Transform.scale(
             scale: 0.6 + 0.4 * _controller.value,
             child: CustomPaint(
-              painter: _MatchPainter(
+              painter: MatchStrokesPainter(
                 widget.points,
-                widget.style.stickColor,
-                widget.style.stickStyle,
+                widget.color,
+                widget.style,
               ),
               size: Size.square(widget.size),
             ),
@@ -478,56 +522,6 @@ class _MatchSquareState extends State<_MatchSquare>
       },
     );
   }
-}
-
-class _MatchPainter extends CustomPainter {
-  _MatchPainter(this.points, this.color, this.style);
-
-  final int points;
-  final Color color;
-  final StickStyle style;
-
-  static const _wood = Color(0xFFD4A574);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final pad = s * 0.08;
-
-    void drawElement(Offset from, Offset to) {
-      if (style == StickStyle.dot) {
-        canvas.drawCircle(from, s * 0.05, Paint()..color = color);
-        canvas.drawCircle(to, s * 0.05, Paint()..color = color);
-        return;
-      }
-      final isMatch = style == StickStyle.match;
-      final paint = Paint()
-        ..color = isMatch ? _wood : color
-        ..strokeWidth = isMatch ? s * 0.07 : s * 0.06
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(from, to, paint);
-      if (isMatch) {
-        canvas.drawCircle(from, s * 0.075, Paint()..color = color);
-      }
-    }
-
-    final tl = Offset(pad, pad);
-    final tr = Offset(s - pad, pad);
-    final bl = Offset(pad, s - pad);
-    final br = Offset(s - pad, s - pad);
-
-    if (points >= 1) drawElement(tl, tr);
-    if (points >= 2) drawElement(tl, bl);
-    if (points >= 3) drawElement(tr, br);
-    if (points >= 4) drawElement(bl, br);
-    if (points >= 5) drawElement(tl, br);
-  }
-
-  @override
-  bool shouldRepaint(covariant _MatchPainter oldDelegate) =>
-      oldDelegate.points != points ||
-      oldDelegate.color != color ||
-      oldDelegate.style != style;
 }
 
 class _ControlsRow extends StatelessWidget {
@@ -548,10 +542,31 @@ class _ControlsRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _ControlButton(label: '-1', color: color, onTap: onSubtract),
-        _ControlButton(label: '+2', color: color, onTap: () => onAdd(2)),
-        if (!hideThree)
-          _ControlButton(label: '+3', color: color, onTap: () => onAdd(3)),
+        Expanded(
+          child: _ControlButton(
+            label: '-1',
+            color: color,
+            onTap: onSubtract,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _ControlButton(
+            label: '+2',
+            color: color,
+            onTap: () => onAdd(2),
+          ),
+        ),
+        if (!hideThree) ...[
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ControlButton(
+              label: '+3',
+              color: color,
+              onTap: () => onAdd(3),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -571,22 +586,25 @@ class _ControlButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: color.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          height: 56,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            border: Border.all(color: color, width: 1.5),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.7), width: 1.5),
           ),
           child: Text(
             label,
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.w800,
-              fontSize: 16,
+              fontSize: 20,
             ),
           ),
         ),

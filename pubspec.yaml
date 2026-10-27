@@ -60,6 +60,13 @@ flutter:
 
   assets:
     - assets/static.png
+    # Licencia SIL OFL de Patrick Hand (se incluye con la fuente).
+    - assets/fonts/OFL.txt
+
+  fonts:
+    - family: PatrickHand
+      fonts:
+        - asset: assets/fonts/PatrickHand-Regular.ttf
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

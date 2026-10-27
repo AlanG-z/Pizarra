@@ -5,6 +5,9 @@ import 'package:pizarra/src/pages/chinchon/score_page.dart';
 import 'package:pizarra/src/pages/truco/score_page.dart';
 import 'package:pizarra/src/pages/truco/setup_page.dart' show PlayingCardsIcon;
 import 'package:pizarra/src/services/game_storage.dart';
+import 'package:pizarra/src/theme/app_palette.dart';
+import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/fade_slide_in.dart';
 
 class InicioPage extends StatefulWidget {
   const InicioPage({super.key});
@@ -75,15 +78,9 @@ class _InicioPageState extends State<InicioPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B3D2E), Color(0xFF06231B)],
-          ),
-        ),
+      body: AppBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -97,75 +94,71 @@ class _InicioPageState extends State<InicioPage> {
                     const SizedBox(height: 12),
                     Text(
                       'PIZARRA',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 6,
-                        color: const Color(0xFFFFD54F),
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+                      style: palette.display(
+                        44,
+                        color: palette.accent,
+                        letterSpacing: 8,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
+                    const SizedBox(height: 2),
+                    Text(
                       'Elegí el anotador',
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
+                        fontSize: 15,
+                        color: palette.textSecondary,
                         letterSpacing: 2,
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    _GameCard(
-                      title: 'TRUCO',
-                      subtitle: 'Partida a 30 puntos',
-                      color: const Color(0xFFE53935),
-                      onTap: () => _openGame('/setup'),
+                    const SizedBox(height: 28),
+                    FadeSlideIn(
+                      child: _GameCard(
+                        title: 'TRUCO',
+                        subtitle: 'Partida a 30 puntos',
+                        color: palette.red,
+                        onTap: () => _openGame('/setup'),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    _GameCard(
-                      title: 'CHINCHÓN',
-                      subtitle: 'Gana el último en pie · límite 100',
-                      color: const Color(0xFF42A5F5),
-                      onTap: () => _openGame('/chinchon-setup'),
+                    const SizedBox(height: 14),
+                    FadeSlideIn(
+                      child: _GameCard(
+                        title: 'CHINCHÓN',
+                        subtitle: 'Gana el último en pie · límite 100',
+                        color: palette.blue,
+                        onTap: () => _openGame('/chinchon-setup'),
+                      ),
                     ),
                     if (_savedTruco != null || _savedChinchon != null) ...[
-                      const SizedBox(height: 28),
-                      const Align(
+                      const SizedBox(height: 26),
+                      Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'PARTIDAS EN CURSO',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 2,
-                            color: Colors.white54,
+                            color: palette.textSecondary,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       if (_savedTruco != null)
                         _ResumeTile(
                           icon: Icons.play_arrow,
                           label: 'Continuar Truco',
                           detail: '${_savedTruco!.teamNames.join(' · ')}  '
                               '${_savedTruco!.scores.join(' - ')}',
-                          color: const Color(0xFFE53935),
+                          color: palette.red,
                           onTap: _resumeTruco,
                         ),
                       if (_savedChinchon != null) ...[
-                        if (_savedTruco != null) const SizedBox(height: 10),
+                        if (_savedTruco != null) const SizedBox(height: 8),
                         _ResumeTile(
                           icon: Icons.play_arrow,
                           label: 'Continuar Chinchón',
                           detail: '${_savedChinchon!.playerCount} jugadores · '
                               'límite ${_savedChinchon!.target}',
-                          color: const Color(0xFF42A5F5),
+                          color: palette.blue,
                           onTap: _resumeChinchon,
                         ),
                       ],
@@ -196,28 +189,30 @@ class _GameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white.withValues(alpha: 0.08),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: color.withValues(alpha: 0.6), width: 1.5),
-      ),
+    final palette = AppPalette.of(context);
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.45), width: 1.4),
+          ),
           child: Row(
             children: [
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
+                  color: color.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: color, width: 1.5),
+                  border: Border.all(color: color.withValues(alpha: 0.6)),
                 ),
-                child: Icon(Icons.circle, color: color, size: 22),
+                child: Icon(Icons.circle, color: color, size: 20),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -226,26 +221,25 @@ class _GameCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
+                      style: palette.display(
+                        26,
                         color: color,
+                        letterSpacing: 2,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 13,
+                        color: palette.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(Icons.chevron_right,
-                  color: Colors.white.withValues(alpha: 0.5)),
+                  color: palette.textSecondary.withValues(alpha: 0.7)),
             ],
           ),
         ),
@@ -271,14 +265,19 @@ class _ResumeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     return Material(
-      color: Colors.white.withValues(alpha: 0.06),
+      color: palette.surface,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: palette.surfaceBorder),
+          ),
           child: Row(
             children: [
               Icon(icon, color: color, size: 22),
@@ -289,10 +288,10 @@ class _ResumeTile extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -302,14 +301,15 @@ class _ResumeTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: palette.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(Icons.chevron_right,
-                  color: Colors.white.withValues(alpha: 0.4), size: 20),
+                  color: palette.textSecondary.withValues(alpha: 0.6),
+                  size: 20),
             ],
           ),
         ),

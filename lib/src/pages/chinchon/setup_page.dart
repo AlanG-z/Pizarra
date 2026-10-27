@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pizarra/src/pages/chinchon/score_page.dart';
 import 'package:pizarra/src/pages/truco/setup_page.dart' show PlayingCardsIcon;
+import 'package:pizarra/src/theme/app_palette.dart';
+import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/fade_slide_in.dart';
 
 class ChinchonSetupPage extends StatefulWidget {
   const ChinchonSetupPage({super.key});
@@ -18,14 +21,6 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
     'Amarillo',
     'Naranja',
     'Rosa',
-  ];
-  static const _colors = [
-    Color(0xFFE53935),
-    Color(0xFF42A5F5),
-    Color(0xFF43A047),
-    Color(0xFFFFD54F),
-    Color(0xFFFF8A50),
-    Color(0xFFEC407A),
   ];
 
   int _playerCount = 2;
@@ -67,45 +62,40 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
     );
   }
 
-  Widget _buildNameField(int i) {
-    final color = _colors[i];
-    return TextField(
-      controller: _nameControllers[i],
-      maxLength: 12,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: 'Jugador ${i + 1}',
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-        prefixIcon: Icon(Icons.circle, color: color, size: 18),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: color),
-        ),
+  InputDecoration _field(
+    AppPalette palette, {
+    required String label,
+    required IconData icon,
+    required Color color,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: palette.textSecondary),
+      counterStyle: TextStyle(color: palette.textSecondary),
+      prefixIcon: Icon(icon, color: color, size: 18),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: palette.surfaceBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     return Scaffold(
+      backgroundColor: palette.backgroundStart,
       appBar: AppBar(
-        title: const Text('Chinchon'),
-        backgroundColor: const Color(0xFF0B3D2E),
-        foregroundColor: const Color(0xFFFFD54F),
+        title: const Text('Chinchón'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: palette.accent,
         elevation: 0,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B3D2E), Color(0xFF06231B)],
-          ),
-        ),
+      body: AppBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -119,52 +109,50 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
                     const SizedBox(height: 12),
                     Text(
                       'CHINCHÓN',
-                      style: TextStyle(
-                        fontSize: 44,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 8,
-                        color: const Color(0xFFFFD54F),
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+                      style: palette.display(
+                        44,
+                        color: palette.accent,
+                        letterSpacing: 6,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Evitá llegar a 100 · gana el último en pie',
+                    const SizedBox(height: 2),
+                    Text(
+                      'Evitá llegar al límite · gana el último en pie',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                        letterSpacing: 2,
+                        fontSize: 14,
+                        color: palette.textSecondary,
+                        letterSpacing: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    Card(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.15),
-                        ),
-                      ),
-                      child: Padding(
+                    const SizedBox(height: 26),
+                    FadeSlideIn(
+                      child: Container(
                         padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: palette.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: palette.surfaceBorder),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Cantidad de jugadores',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: palette.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 12),
                             SegmentedButton<int>(
+                              style: SegmentedButton.styleFrom(
+                                foregroundColor:
+                                    palette.textPrimary.withValues(alpha: 0.9),
+                                selectedForegroundColor: palette.accentOn,
+                                selectedBackgroundColor: palette.accent,
+                                side: BorderSide(color: palette.surfaceBorder),
+                              ),
                               segments: const [
                                 ButtonSegment(value: 2, label: Text('2')),
                                 ButtonSegment(value: 3, label: Text('3')),
@@ -176,12 +164,23 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
                               onSelectionChanged: (s) =>
                                   setState(() => _playerCount = s.first),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 18),
                             for (int i = 0; i < _playerCount; i++) ...[
-                              _buildNameField(i),
-                              if (i < _playerCount - 1) const SizedBox(height: 12),
+                              TextField(
+                                controller: _nameControllers[i],
+                                maxLength: 12,
+                                style: TextStyle(color: palette.textPrimary),
+                                decoration: _field(
+                                  palette,
+                                  label: 'Jugador ${i + 1}',
+                                  icon: Icons.circle,
+                                  color: palette.playerColor(i),
+                                ),
+                              ),
+                              if (i < _playerCount - 1)
+                                const SizedBox(height: 2),
                             ],
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 6),
                             TextField(
                               controller: _targetController,
                               keyboardType: TextInputType.number,
@@ -189,40 +188,27 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
                               maxLength: 4,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Puntos de eliminación',
-                                labelStyle: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                ),
-                                prefixIcon: const Icon(Icons.emoji_events,
-                                    color: Color(0xFFFFD54F), size: 18),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      BorderSide(color: Color(0xFFFFD54F)),
-                                ),
+                              style: TextStyle(color: palette.textPrimary),
+                              decoration: _field(
+                                palette,
+                                label: 'Puntos de eliminación',
+                                icon: Icons.emoji_events_outlined,
+                                color: palette.accent,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 22),
                     SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: FilledButton(
                         onPressed: _start,
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFD54F),
-                          foregroundColor: const Color(0xFF1B5E20),
+                          backgroundColor: palette.accent,
+                          foregroundColor: palette.accentOn,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -237,39 +223,14 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     TextButton.icon(
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          backgroundColor: const Color(0xFF0B3D2E),
-                          title: const Text('¿Cómo se anota?',
-                              style: TextStyle(color: Colors.white)),
-                          content: Text(
-                            '• Si cerrás la ronda anotás 0 puntos.\n'
-                            '• Si no cerrás, anotá el valor de las cartas '
-                            'que te quedaron sueltas.\n'
-                            '• El botón -10 descuenta diez puntos.\n'
-                            '• El que llega al límite queda eliminado.\n'
-                            '• Gana el último jugador que queda en pie.',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.85),
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Entendido',
-                                  style:
-                                      TextStyle(color: Color(0xFFFFD54F))),
-                            ),
-                          ],
-                        ),
+                      onPressed: () => _showHelp(palette),
+                      icon: Icon(Icons.help_outline, color: palette.accent),
+                      label: Text(
+                        'Cómo se anota',
+                        style: TextStyle(color: palette.accent),
                       ),
-                      icon: const Icon(Icons.help_outline,
-                          color: Color(0xFFFFD54F)),
-                      label: const Text('Cómo se anota',
-                          style: TextStyle(color: Color(0xFFFFD54F))),
                     ),
                   ],
                 ),
@@ -277,6 +238,30 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showHelp(AppPalette palette) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('¿Cómo se anota?'),
+        content: Text(
+          '• Si cerrás la ronda anotás 0 puntos.\n'
+          '• Si no cerrás, anotá el valor de las cartas '
+          'que te quedaron sueltas.\n'
+          '• El botón -10 descuenta diez puntos.\n'
+          '• El que llega al límite queda eliminado.\n'
+          '• Gana el último jugador que queda en pie.',
+          style: TextStyle(color: palette.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
+          ),
+        ],
       ),
     );
   }

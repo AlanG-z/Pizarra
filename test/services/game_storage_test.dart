@@ -48,7 +48,6 @@ void main() {
 
   test('guarda y recupera el estilo del anotador', () {
     const style = StyleSettings(
-      backgroundColor: Color(0xFF0B3D2E),
       stickColor: Color(0xFFE53935),
       stickStyle: StickStyle.dot,
     );
@@ -57,9 +56,16 @@ void main() {
     final restored = GameStorage.instance.loadStyle();
 
     expect(restored, isNotNull);
-    expect(restored!.backgroundColor, const Color(0xFF0B3D2E));
-    expect(restored.stickColor, const Color(0xFFE53935));
+    expect(restored!.stickColor, const Color(0xFFE53935));
     expect(restored.stickStyle, StickStyle.dot);
+  });
+
+  test('guarda y recupera el tema de la app', () {
+    expect(GameStorage.instance.loadThemeId(), isNull);
+
+    GameStorage.instance.saveThemeId('paper');
+
+    expect(GameStorage.instance.loadThemeId(), 'paper');
   });
 
   test('devuelve null cuando no hay partida guardada', () {

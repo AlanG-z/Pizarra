@@ -20,6 +20,7 @@ class GameStorage {
   static const String trucoKey = 'pizarra.truco.game.v1';
   static const String chinchonKey = 'pizarra.chinchon.game.v1';
   static const String styleKey = 'pizarra.truco.style.v1';
+  static const String themeKey = 'pizarra.theme.v1';
 
   SharedPreferences? _prefs;
 
@@ -44,6 +45,10 @@ class GameStorage {
   StyleSettings? loadStyle() => _read(styleKey, StyleSettings.fromJson);
 
   void saveStyle(StyleSettings style) => _write(styleKey, style.toJson());
+
+  String? loadThemeId() => _prefs?.getString(themeKey);
+
+  void saveThemeId(String id) => unawaited(_prefs?.setString(themeKey, id));
 
   T? _read<T>(String key, T Function(Map<String, dynamic>) fromJson) {
     final raw = _prefs?.getString(key);
