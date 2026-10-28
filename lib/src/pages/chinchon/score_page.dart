@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pizarra/src/models/chinchon_game.dart';
+import 'package:pizarra/src/pages/chinchon/setup_page.dart';
 import 'package:pizarra/src/services/game_storage.dart';
 import 'package:pizarra/src/theme/app_palette.dart';
 import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/app_pill_bar.dart';
 import 'package:pizarra/src/widgets/fade_slide_in.dart';
 import 'package:pizarra/src/widgets/match_painter.dart';
 
@@ -70,8 +72,8 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
 
   Color _foregroundOn(Color background) =>
       ThemeData.estimateBrightnessForColor(background) == Brightness.dark
-          ? Colors.white
-          : Colors.black87;
+      ? Colors.white
+      : Colors.black87;
 
   void _scrollToBottom(int i) {
     final c = _scrollControllers[i];
@@ -122,10 +124,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
             const SizedBox(height: 8),
             Text(
               widget.playerNames[player],
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
@@ -193,7 +192,29 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
   }
 
   void _backToPicker() {
-    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
+    }
+  }
+
+  Widget _buildPillBar(AppPalette palette) {
+    return SafeArea(
+      top: false,
+      child: AppPillBar(
+        onBack: _backToPicker,
+        actions: [
+          AppPillAction(icon: Icons.refresh, label: 'Reiniciar', onTap: _reset),
+          AppPillAction(
+            icon: Icons.group_outlined,
+            label: 'Jugadores',
+            onTap: () => Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ChinchonSetupPage()),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatMove(int move) => move >= 0 ? '+$move' : '$move';
@@ -210,6 +231,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
     _maybeShowWinner();
 
     return Scaffold(
+      bottomNavigationBar: _buildPillBar(palette),
       body: AppBackground(
         child: SafeArea(
           child: Column(
@@ -232,7 +254,9 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('¡Ganador!', textAlign: TextAlign.center),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -278,29 +302,13 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
 
   Widget _buildHeader(AppPalette palette) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: _backToPicker,
-            tooltip: 'Juegos',
-            icon: Icon(Icons.arrow_back, color: palette.textSecondary),
-          ),
-          Expanded(
-            child: Text(
-              'CHINCHÓN · LÍMITE ${_game.target}',
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: palette.display(20, color: palette.accent, letterSpacing: 1),
-            ),
-          ),
-          IconButton(
-            onPressed: _reset,
-            tooltip: 'Reiniciar',
-            icon: Icon(Icons.refresh, color: palette.textSecondary),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: Text(
+        'CHINCHÓN · LÍMITE ${_game.target}',
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: palette.display(20, color: palette.accent, letterSpacing: 1),
       ),
     );
   }
@@ -310,11 +318,7 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
     for (int i = 0; i < _game.playerCount; i++) {
       if (i > 0) columns.add(const SizedBox(width: 6));
       columns.add(
-        Expanded(
-          child: FadeSlideIn(
-            child: _buildPlayerCard(i, palette),
-          ),
-        ),
+        Expanded(child: FadeSlideIn(child: _buildPlayerCard(i, palette))),
       );
     }
     return Padding(
@@ -344,7 +348,9 @@ class _ChinchonScorePageState extends State<ChinchonScorePage> {
           color: palette.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: eliminated ? palette.surfaceBorder : color.withValues(alpha: 0.35),
+            color: eliminated
+                ? palette.surfaceBorder
+                : color.withValues(alpha: 0.35),
           ),
         ),
         child: Column(
@@ -481,11 +487,7 @@ class _AnimatedTotal extends StatelessWidget {
 
 /// Entrada del registro: chip verde para `+N` y rojo para `-N`.
 class _LedgerChip extends StatelessWidget {
-  const _LedgerChip({
-    super.key,
-    required this.label,
-    required this.color,
-  });
+  const _LedgerChip({super.key, required this.label, required this.color});
 
   final String label;
   final Color color;
@@ -545,12 +547,8 @@ class _PointsDialogState extends State<_PointsDialog> {
             controller: _controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Puntos de la ronda',
-            ),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: const InputDecoration(labelText: 'Puntos de la ronda'),
           ),
           const SizedBox(height: 12),
           Wrap(

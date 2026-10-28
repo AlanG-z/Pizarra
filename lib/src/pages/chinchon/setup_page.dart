@@ -4,6 +4,7 @@ import 'package:pizarra/src/pages/chinchon/score_page.dart';
 import 'package:pizarra/src/pages/truco/setup_page.dart' show PlayingCardsIcon;
 import 'package:pizarra/src/theme/app_palette.dart';
 import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/app_pill_bar.dart';
 import 'package:pizarra/src/widgets/fade_slide_in.dart';
 
 class ChinchonSetupPage extends StatefulWidget {
@@ -25,15 +26,15 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
 
   int _playerCount = 2;
   late final List<TextEditingController> _nameControllers;
-  final TextEditingController _targetController =
-      TextEditingController(text: '100');
+  final TextEditingController _targetController = TextEditingController(
+    text: '100',
+  );
 
   @override
   void initState() {
     super.initState();
     _nameControllers = [
-      for (final name in _defaults)
-        TextEditingController(text: name),
+      for (final name in _defaults) TextEditingController(text: name),
     ];
   }
 
@@ -56,8 +57,7 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
     final target = int.tryParse(_targetController.text.trim()) ?? 100;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            ChinchonScorePage(playerNames: names, target: target),
+        builder: (_) => ChinchonScorePage(playerNames: names, target: target),
       ),
     );
   }
@@ -88,13 +88,7 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     return Scaffold(
-      backgroundColor: palette.backgroundStart,
-      appBar: AppBar(
-        title: const Text('Chinchón'),
-        backgroundColor: Colors.transparent,
-        foregroundColor: palette.accent,
-        elevation: 0,
-      ),
+      bottomNavigationBar: _pillBar(palette),
       body: AppBackground(
         child: SafeArea(
           child: Center(
@@ -147,8 +141,9 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
                             const SizedBox(height: 12),
                             SegmentedButton<int>(
                               style: SegmentedButton.styleFrom(
-                                foregroundColor:
-                                    palette.textPrimary.withValues(alpha: 0.9),
+                                foregroundColor: palette.textPrimary.withValues(
+                                  alpha: 0.9,
+                                ),
                                 selectedForegroundColor: palette.accentOn,
                                 selectedBackgroundColor: palette.accent,
                                 side: BorderSide(color: palette.surfaceBorder),
@@ -223,21 +218,29 @@ class _ChinchonSetupPageState extends State<ChinchonSetupPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () => _showHelp(palette),
-                      icon: Icon(Icons.help_outline, color: palette.accent),
-                      label: Text(
-                        'Cómo se anota',
-                        style: TextStyle(color: palette.accent),
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _pillBar(AppPalette palette) {
+    return SafeArea(
+      top: false,
+      child: AppPillBar(
+        onBack: () => Navigator.of(context).maybePop(),
+        actions: [
+          AppPillAction(
+            icon: Icons.help_outline,
+            label: 'Ayuda',
+            color: palette.accent,
+            onTap: () => _showHelp(palette),
+          ),
+        ],
       ),
     );
   }

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:pizarra/src/models/chinchon_game.dart';
 import 'package:pizarra/src/models/truco_game.dart';
+import 'package:pizarra/src/models/truco_style.dart';
 import 'package:pizarra/src/pages/chinchon/score_page.dart';
 import 'package:pizarra/src/pages/truco/score_page.dart';
 import 'package:pizarra/src/pages/truco/setup_page.dart' show PlayingCardsIcon;
+import 'package:pizarra/src/pages/truco/style_page.dart';
 import 'package:pizarra/src/services/game_storage.dart';
 import 'package:pizarra/src/theme/app_palette.dart';
 import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/app_pill_bar.dart';
 import 'package:pizarra/src/widgets/fade_slide_in.dart';
 
 class InicioPage extends StatefulWidget {
@@ -32,8 +35,7 @@ class _InicioPageState extends State<InicioPage> {
     final truco = _storage.loadTruco();
     final chinchon = _storage.loadChinchon();
     _savedTruco = truco != null && truco.hasProgress ? truco : null;
-    _savedChinchon =
-        chinchon != null && chinchon.hasProgress ? chinchon : null;
+    _savedChinchon = chinchon != null && chinchon.hasProgress ? chinchon : null;
   }
 
   Future<void> _openGame(String route) async {
@@ -76,10 +78,45 @@ class _InicioPageState extends State<InicioPage> {
     setState(_reloadSavedGames);
   }
 
+  Future<void> _openStyle() async {
+    final result = await Navigator.of(context).push<StyleSettings>(
+      MaterialPageRoute(
+        builder: (_) =>
+            StylePage(settings: _storage.loadStyle() ?? const StyleSettings()),
+      ),
+    );
+    if (result != null) _storage.saveStyle(result);
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     return Scaffold(
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: AppPillBar(
+          actions: [
+            AppPillAction(
+              icon: Icons.circle,
+              label: 'Truco',
+              color: palette.red,
+              onTap: () => _openGame('/setup'),
+            ),
+            AppPillAction(
+              icon: Icons.circle,
+              label: 'Chinchón',
+              color: palette.blue,
+              onTap: () => _openGame('/chinchon-setup'),
+            ),
+            AppPillAction(
+              icon: Icons.palette_outlined,
+              label: 'Estilo',
+              color: palette.accent,
+              onTap: _openStyle,
+            ),
+          ],
+        ),
+      ),
       body: AppBackground(
         child: SafeArea(
           child: Center(
@@ -146,7 +183,8 @@ class _InicioPageState extends State<InicioPage> {
                         _ResumeTile(
                           icon: Icons.play_arrow,
                           label: 'Continuar Truco',
-                          detail: '${_savedTruco!.teamNames.join(' · ')}  '
+                          detail:
+                              '${_savedTruco!.teamNames.join(' · ')}  '
                               '${_savedTruco!.scores.join(' - ')}',
                           color: palette.red,
                           onTap: _resumeTruco,
@@ -156,7 +194,8 @@ class _InicioPageState extends State<InicioPage> {
                         _ResumeTile(
                           icon: Icons.play_arrow,
                           label: 'Continuar Chinchón',
-                          detail: '${_savedChinchon!.playerCount} jugadores · '
+                          detail:
+                              '${_savedChinchon!.playerCount} jugadores · '
                               'límite ${_savedChinchon!.target}',
                           color: palette.blue,
                           onTap: _resumeChinchon,
@@ -200,7 +239,10 @@ class _GameCard extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: 0.45), width: 1.4),
+            border: Border.all(
+              color: color.withValues(alpha: 0.45),
+              width: 1.4,
+            ),
           ),
           child: Row(
             children: [
@@ -238,8 +280,10 @@ class _GameCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right,
-                  color: palette.textSecondary.withValues(alpha: 0.7)),
+              Icon(
+                Icons.chevron_right,
+                color: palette.textSecondary.withValues(alpha: 0.7),
+              ),
             ],
           ),
         ),
@@ -307,9 +351,11 @@ class _ResumeTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right,
-                  color: palette.textSecondary.withValues(alpha: 0.6),
-                  size: 20),
+              Icon(
+                Icons.chevron_right,
+                color: palette.textSecondary.withValues(alpha: 0.6),
+                size: 20,
+              ),
             ],
           ),
         ),

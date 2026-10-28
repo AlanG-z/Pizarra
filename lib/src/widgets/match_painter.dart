@@ -38,9 +38,9 @@ class MatchStrokesPainter extends CustomPainter {
       final jitter = s * 0.022;
 
       Offset wobble(Offset point, int axis) => Offset(
-            point.dx + math.sin(seed * 12.9898 + axis * 4.1414) * jitter,
-            point.dy + math.cos(seed * 78.233 + axis * 2.7183) * jitter,
-          );
+        point.dx + math.sin(seed * 12.9898 + axis * 4.1414) * jitter,
+        point.dy + math.cos(seed * 78.233 + axis * 2.7183) * jitter,
+      );
 
       final start = wobble(from, 1);
       final end = wobble(to, 2);

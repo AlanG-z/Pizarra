@@ -3,6 +3,7 @@ import 'package:pizarra/src/models/truco_style.dart';
 import 'package:pizarra/src/theme/app_palette.dart';
 import 'package:pizarra/src/theme/theme_controller.dart';
 import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/app_pill_bar.dart';
 import 'package:pizarra/src/widgets/match_painter.dart';
 
 class StylePage extends StatefulWidget {
@@ -35,30 +36,24 @@ class _StylePageState extends State<StylePage> {
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
+    final topInset = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: palette.backgroundStart,
-      appBar: AppBar(
-        title: const Text('Estilo'),
-        backgroundColor: Colors.transparent,
-        foregroundColor: palette.accent,
-        elevation: 0,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, _settings),
-            child: Text(
-              'Listo',
-              style: TextStyle(
-                color: palette.accent,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+      bottomNavigationBar: _pillBar(palette),
       body: AppBackground(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(16, 16 + topInset, 16, 16),
           children: [
+            Center(
+              child: Text(
+                'ESTILO',
+                style: palette.display(
+                  34,
+                  color: palette.accent,
+                  letterSpacing: 6,
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
             _sectionTitle(palette, 'Tema de la app'),
             Wrap(
               spacing: 8,
@@ -135,6 +130,23 @@ class _StylePageState extends State<StylePage> {
     );
   }
 
+  Widget _pillBar(AppPalette palette) {
+    return SafeArea(
+      top: false,
+      child: AppPillBar(
+        onBack: () => Navigator.of(context).maybePop(),
+        actions: [
+          AppPillAction(
+            icon: Icons.check,
+            label: 'Listo',
+            color: palette.accent,
+            onTap: () => Navigator.of(context).pop(_settings),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _sectionTitle(AppPalette palette, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -196,10 +208,7 @@ class _StylePageState extends State<StylePage> {
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _previewSquare(palette, 2),
-              _previewSquare(palette, 5),
-            ],
+            children: [_previewSquare(palette, 2), _previewSquare(palette, 5)],
           ),
         ],
       ),

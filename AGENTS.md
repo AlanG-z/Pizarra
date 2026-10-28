@@ -12,9 +12,11 @@ setup + score pages. All user-facing strings are in Spanish.
   casually.
 - `flutter test` — unit tests (`test/models/`, `test/services/`) plus widget tests
   (`test/widget_test.dart`, `test/resume_test.dart`, `test/theme_test.dart`,
-  `test/layout_test.dart`).
+  `test/layout_test.dart`, `test/navigation_test.dart`).
   `layout_test.dart` pumps every screen with the 4 themes at 390×844 and 360×640
-  and asserts no overflow (`tester.takeException()` is null).
+  and asserts no overflow (`tester.takeException()` is null);
+  `navigation_test.dart` checks that the bottom bar is on every screen and that
+  "Volver" works from setup and from the score pages.
 - Single file: `flutter test test/widget_test.dart`; single group/test:
   `flutter test --plain-name "TrucoGame"`.
 - `flutter analyze` — uses `flutter_lints` via `analysis_options.yaml`; excludes
@@ -41,7 +43,8 @@ setup + score pages. All user-facing strings are in Spanish.
   - `theme_controller.dart`: `ThemeController.instance.theme` (`ValueNotifier`)
     and `select(type)`, which persists the id.
 - `lib/src/widgets/` — `app_background.dart` (theme gradient), `fade_slide_in.dart`
-  (card entrance), `match_painter.dart` (`MatchStrokesPainter` for Truco strokes,
+  (card entrance), `app_pill_bar.dart` (`AppPillBar` + `AppPillAction`, the shared
+  bottom bar), `match_painter.dart` (`MatchStrokesPainter` for Truco strokes,
   `DashedLinePainter` for dividers, `resolveStickColor`).
 - `lib/src/models/` — pure Dart scoring logic, no Flutter widgets:
   - `truco_game.dart` (`TrucoGame`): team names, scores, `target` 30, `addPoints`,
@@ -78,9 +81,17 @@ setup + score pages. All user-facing strings are in Spanish.
   are gitignored and untracked (they may still hold stale local names — they
   regenerate; don't hand-edit them). `build/` and `.dart_tool/` artifacts also
   regenerate.
-- Both setup pages (Truco and Chinchón) have an AppBar with a back arrow that
-  returns to the picker. Score pages also expose a back button
-  (`pushNamedAndRemoveUntil('/', ...)`).
+- Every screen uses the shared bottom bar (`AppPillBar`) as
+  `Scaffold.bottomNavigationBar`, wrapped in `SafeArea(top: false)`; there are no
+  `AppBar`s left (the titles live in the content). `onBack` is `null` only on the
+  picker (root). Actions per screen: picker `Truco/Chinchón/Estilo`; both setups
+  `Volver/Ayuda`; Truco score `Volver/Reiniciar/Equipos/Estilo`; Estilo
+  `Volver/Listo`; Chinchón score `Volver/Reiniciar/Jugadores`. "Volver" on the
+  score pages does `popUntil(isFirst)` (the match stays saved, so it shows up in
+  "PARTIDAS EN CURSO"); on setup/Estilo it does `maybePop()`.
+- "Equipos"/"Jugadores" open the matching setup with `pushReplacement` (the score
+  page is replaced, not stacked). The Estilo page is also reachable from the
+  picker and saves the style there.
 
 ## Persistence
 

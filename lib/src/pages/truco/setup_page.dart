@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pizarra/src/pages/truco/score_page.dart';
 import 'package:pizarra/src/theme/app_palette.dart';
 import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/app_pill_bar.dart';
 import 'package:pizarra/src/widgets/fade_slide_in.dart';
 
 class SetupPage extends StatefulWidget {
@@ -13,12 +14,15 @@ class SetupPage extends StatefulWidget {
 
 class _SetupPageState extends State<SetupPage> {
   int _playersPerTeam = 2;
-  final TextEditingController _teamAController =
-      TextEditingController(text: 'Nosotros');
-  final TextEditingController _teamBController =
-      TextEditingController(text: 'Ellos');
-  final TextEditingController _teamCController =
-      TextEditingController(text: 'Verde');
+  final TextEditingController _teamAController = TextEditingController(
+    text: 'Nosotros',
+  );
+  final TextEditingController _teamBController = TextEditingController(
+    text: 'Ellos',
+  );
+  final TextEditingController _teamCController = TextEditingController(
+    text: 'Verde',
+  );
 
   @override
   void dispose() {
@@ -76,13 +80,7 @@ class _SetupPageState extends State<SetupPage> {
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     return Scaffold(
-      backgroundColor: palette.backgroundStart,
-      appBar: AppBar(
-        title: const Text('Truco'),
-        backgroundColor: Colors.transparent,
-        foregroundColor: palette.accent,
-        elevation: 0,
-      ),
+      bottomNavigationBar: _pillBar(palette),
       body: AppBackground(
         child: SafeArea(
           child: Center(
@@ -134,8 +132,9 @@ class _SetupPageState extends State<SetupPage> {
                             const SizedBox(height: 12),
                             SegmentedButton<int>(
                               style: SegmentedButton.styleFrom(
-                                foregroundColor:
-                                    palette.textPrimary.withValues(alpha: 0.9),
+                                foregroundColor: palette.textPrimary.withValues(
+                                  alpha: 0.9,
+                                ),
                                 selectedForegroundColor: palette.accentOn,
                                 selectedBackgroundColor: palette.accent,
                                 side: BorderSide(color: palette.surfaceBorder),
@@ -213,21 +212,29 @@ class _SetupPageState extends State<SetupPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () => _showHelp(palette),
-                      icon: Icon(Icons.help_outline, color: palette.accent),
-                      label: Text(
-                        'Cómo se anota',
-                        style: TextStyle(color: palette.accent),
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _pillBar(AppPalette palette) {
+    return SafeArea(
+      top: false,
+      child: AppPillBar(
+        onBack: () => Navigator.of(context).maybePop(),
+        actions: [
+          AppPillAction(
+            icon: Icons.help_outline,
+            label: 'Ayuda',
+            color: palette.accent,
+            onTap: () => _showHelp(palette),
+          ),
+        ],
       ),
     );
   }
@@ -269,10 +276,7 @@ class PlayingCardsIcon extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Transform.rotate(
-            angle: -0.22,
-            child: _card(Colors.white, size),
-          ),
+          Transform.rotate(angle: -0.22, child: _card(Colors.white, size)),
           Transform.rotate(
             angle: 0.22,
             child: _card(const Color(0xFFFFD54F), size),

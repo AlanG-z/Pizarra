@@ -9,6 +9,7 @@ import 'package:pizarra/src/pages/truco/style_page.dart';
 import 'package:pizarra/src/services/game_storage.dart';
 import 'package:pizarra/src/theme/app_palette.dart';
 import 'package:pizarra/src/widgets/app_background.dart';
+import 'package:pizarra/src/widgets/app_pill_bar.dart';
 import 'package:pizarra/src/widgets/match_painter.dart';
 
 class ScorePage extends StatefulWidget {
@@ -44,10 +45,10 @@ class _ScorePageState extends State<ScorePage> {
   int get _teamCount => widget.playersPerTeam == 3 ? 3 : 2;
 
   List<String> get _teamNames => [
-        widget.teamAName,
-        widget.teamBName,
-        if (_teamCount == 3) widget.teamCName ?? 'Verde',
-      ];
+    widget.teamAName,
+    widget.teamBName,
+    if (_teamCount == 3) widget.teamCName ?? 'Verde',
+  ];
 
   @override
   void initState() {
@@ -125,6 +126,7 @@ class _ScorePageState extends State<ScorePage> {
     _maybeShowWinner();
 
     return Scaffold(
+      bottomNavigationBar: _buildPillBar(palette),
       body: AppBackground(
         child: SafeArea(
           child: Column(
@@ -132,7 +134,6 @@ class _ScorePageState extends State<ScorePage> {
               _buildHeader(palette),
               Expanded(child: _buildSquares(palette)),
               _buildControls(palette),
-              _buildPillBar(palette),
             ],
           ),
         ),
@@ -150,7 +151,9 @@ class _ScorePageState extends State<ScorePage> {
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text('¡Ganador!', textAlign: TextAlign.center),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -224,15 +227,16 @@ class _ScorePageState extends State<ScorePage> {
       builder: (context, constraints) {
         const gap = 8.0;
         final teamCount = _game.teamCount;
-        final widthPerTeam = (constraints.maxWidth - 24 - (teamCount - 1) * gap) /
-            teamCount;
+        final widthPerTeam =
+            (constraints.maxWidth - 24 - (teamCount - 1) * gap) / teamCount;
         final sizeByWidth = widthPerTeam - 24;
         final totalSquares = TrucoGame.squaresPerHalf * 2 + 1;
         final sizeByHeight =
             (constraints.maxHeight - 34 - (totalSquares - 1) * gap) /
-                totalSquares;
-        final size =
-            math.max(14.0, math.min(sizeByWidth, sizeByHeight)).toDouble();
+            totalSquares;
+        final size = math
+            .max(14.0, math.min(sizeByWidth, sizeByHeight))
+            .toDouble();
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -337,111 +341,45 @@ class _ScorePageState extends State<ScorePage> {
   }
 
   Widget _buildPillBar(AppPalette palette) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: palette.surfaceBorder),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _PillAction(
-                icon: Icons.refresh,
-                label: 'Reiniciar',
-                color: palette.textSecondary,
-                onTap: _reset,
-              ),
+    return SafeArea(
+      top: false,
+      child: AppPillBar(
+        onBack: _backToPicker,
+        actions: [
+          AppPillAction(icon: Icons.refresh, label: 'Reiniciar', onTap: _reset),
+          AppPillAction(
+            icon: Icons.group_outlined,
+            label: 'Equipos',
+            onTap: () => Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const SetupPage()),
             ),
-            Expanded(
-              child: _PillAction(
-                icon: Icons.settings_outlined,
-                label: 'Configurar',
-                color: palette.textSecondary,
-                onTap: () => Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const SetupPage()),
-                ),
-              ),
-            ),
-            Expanded(
-              child: _PillAction(
-                icon: Icons.palette_outlined,
-                label: 'Estilo',
-                color: palette.accent,
-                onTap: _openStyle,
-              ),
-            ),
-          ],
-        ),
+          ),
+          AppPillAction(
+            icon: Icons.palette_outlined,
+            label: 'Estilo',
+            color: palette.accent,
+            onTap: _openStyle,
+          ),
+        ],
       ),
     );
   }
 
+  void _backToPicker() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
+    }
+  }
+
   void _openStyle() async {
     final result = await Navigator.of(context).push<StyleSettings>(
-      MaterialPageRoute(
-        builder: (_) => StylePage(settings: _style),
-      ),
+      MaterialPageRoute(builder: (_) => StylePage(settings: _style)),
     );
     if (result != null) {
       setState(() => _style = result);
       _storage.saveStyle(result);
     }
-  }
-}
-
-class _PillAction extends StatelessWidget {
-  const _PillAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(999),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 11),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: color,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -543,11 +481,7 @@ class _ControlsRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         Expanded(
-          child: _ControlButton(
-            label: '-1',
-            color: color,
-            onTap: onSubtract,
-          ),
+          child: _ControlButton(label: '-1', color: color, onTap: onSubtract),
         ),
         const SizedBox(width: 6),
         Expanded(

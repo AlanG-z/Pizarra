@@ -51,6 +51,24 @@ divisorias, acentos y colores de equipo), así que no hay colores fijos en las
 pantallas. Los títulos y totales usan la tipografía manuscrita **Patrick Hand**,
 incluida como asset.
 
+### Navegación
+
+Todas las pantallas comparten la misma barra inferior tipo píldora, con íconos y
+etiquetas:
+
+| Pantalla | Acciones |
+|---|---|
+| Inicio | Truco · Chinchón · Estilo |
+| Configuración (Truco y Chinchón) | Volver · Ayuda |
+| Puntaje de Truco | Volver · Reiniciar · Equipos · Estilo |
+| Página de estilo | Volver · Listo |
+| Puntaje de Chinchón | Volver · Reiniciar · Jugadores |
+
+En el inicio no hay "Volver" porque es la raíz. Volver desde un puntaje regresa
+al inicio dejando la partida guardada en **PARTIDAS EN CURSO**; desde la
+configuración o el estilo vuelve a la pantalla anterior. "Equipos" y "Jugadores"
+reabren la configuración del juego correspondiente.
+
 ### Persistencia
 
 La partida en curso se guarda automáticamente en el dispositivo
@@ -92,6 +110,7 @@ lib/
     │   └── theme_controller.dart # Tema activo (ValueNotifier)
     ├── widgets/
     │   ├── app_background.dart   # Degradé del tema
+    │   ├── app_pill_bar.dart     # Barra inferior común (acciones + volver)
     │   ├── fade_slide_in.dart    # Entrada de tarjetas
     │   └── match_painter.dart    # Tiza, fósforos, palitos, divisorias
     └── pages/
@@ -105,6 +124,7 @@ test/
 ├── resume_test.dart              # Continuar partida desde el inicio
 ├── theme_test.dart               # Paletas, temas y cambio de tema en vivo
 ├── layout_test.dart              # Ninguna pantalla desborda (4 temas × 2 tamaños)
+├── navigation_test.dart          # Barra inferior en todas las pantallas y "Volver"
 └── widget_test.dart              # Tests de widgets de ambas páginas
 ```
 
@@ -128,6 +148,7 @@ Correr un subconjunto de tests:
 flutter test test/models/
 flutter test test/widget_test.dart
 flutter test test/layout_test.dart
+flutter test test/navigation_test.dart
 flutter test --plain-name "ChinchonGame"
 ```
 
